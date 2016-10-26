@@ -74,7 +74,7 @@
   <distributionManagement>
     <repository>
       <id>bintray</id>
-      <url>https://api.bintray.com/maven/openzipkin/maven/b3-java/;publish=1</url>
+      <url>https://api.bintray.com/maven/openzipkin/maven/b3-propagation/;publish=1</url>
     </repository>
     <snapshotRepository>
       <id>jfrog-snapshots</id>
@@ -250,7 +250,7 @@
         <artifactId>centralsync-maven-plugin</artifactId>
         <version>0.1.0</version>
         <configuration>
-          <packageName>b3-java</packageName>
+          <packageName>b3-propagation</packageName>
         </configuration>
       </plugin>
     </plugins>
