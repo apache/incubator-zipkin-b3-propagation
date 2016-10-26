@@ -246,7 +246,7 @@
       </plugin>
 
       <plugin>
-        <groupId>io.centralsync-maven-plugin</groupId>
+        <groupId>io.zipkin.centralsync-maven-plugin</groupId>
         <artifactId>centralsync-maven-plugin</artifactId>
         <version>0.1.0</version>
         <configuration>
