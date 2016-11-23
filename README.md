@@ -9,22 +9,13 @@ Trace identifiers are 64 or 128-bit, but all span identifiers within a trace are
 
 The TraceId is 64 or 128-bit in length and indicates the overall ID of the trace. Every span in a trace shares this ID.
 
-### Http Header format
-The `X-B3-TraceId` header is required and is encoded as 32 or 16 hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`
-
 ## SpanId
 
 The SpanId is 64-bit in length and indicates the position of the current operation in the trace tree. The value should not be interpreted: it may or may not be derived from the value of the TraceId.
 
-### Http Header format
-The `X-B3-SpanId` header is required and is encoded as 16 hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`
-
 ## ParentSpanId
 
 The ParentSpanId is 64-bit in length and indicates the position of the parent operation in the trace tree. When the span is the root of the trace tree, the ParentSpanId is absent.
-
-### Http Header format
-The `X-B3-ParentSpanId` header must be present on a child span and absent on the root span. It is encoded as 16 hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
 
 # Flags
 The following flags are reported either in a flag set or separate attributes.
@@ -32,9 +23,6 @@ The following flags are reported either in a flag set or separate attributes.
 ## Sampled
 
 When the Sampled flag is 1, report this span to the tracing system. When it is 0, do not. When B3 attributes are sent without the Sampled flag, the receiver should make the decision. Once Sampled is set to 0 or 1, the same value should be consistently sent downstream.
-
-### Http Header format
-The `X-B3-Sampled` header is encoded as "1" or "0". Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`
 
 ### Details
 
@@ -50,6 +38,28 @@ Unless it is a debug trace, leaving sampled unset is typically for ID correlatio
 ## Debug
 When Debug is set, the trace should be reported to the tracing system and also override any collection-tier sampling policy. Debug implies Sampled.
 
-### Http Header format
+# Http Propagation
+B3 attributes are most commonly propagated as Http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When reading headers, the first value wins.
+
+## TraceId
+The `X-B3-TraceId` header is required and is encoded as 32 or 16 hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`
+
+## SpanId
+The `X-B3-SpanId` header is required and is encoded as 16 hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`
+
+## ParentSpanId
+The `X-B3-ParentSpanId` header must be present on a child span and absent on the root span. It is encoded as 16 hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
+
+## Sampled Flag
+The `X-B3-Sampled` header is encoded as "1" or "0". Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`
+
+## Debug Flag
 Debug is encoded as `X-B3-Flags: 1`. Since Debug implies Sampled, so don't also send "X-B3-Sampled: 1".
 
+# gRPC Propagation
+B3 attributes can also be propagated as ASCII headers in the Custom Metadata of
+a request. The encoding is exactly the same as Http headers, except the names are
+explicitly or implicitly down-cased.
+
+For example, the Http header `X-B3-ParentSpanId: 0020000000000001` would become
+an ASCII header `x-b3-parentspanid` with the same value.
