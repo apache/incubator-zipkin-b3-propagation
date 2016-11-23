@@ -31,7 +31,7 @@ The following flags are reported either in a flag set or separate attributes.
 
 ## Sampled
 
-When the Sampled is 1, report this span to the tracing system. When it is 0, do do not. When B3 attributes are sent without the Sampled attribute, the receiver should make the decision. Once Sampled is set to 0 or 1, the value should be consistently sent downstream.
+When the Sampled flag is 1, report this span to the tracing system. When it is 0, do not. When B3 attributes are sent without the Sampled flag, the receiver should make the decision. Once Sampled is set to 0 or 1, the same value should be consistently sent downstream.
 
 ### Http Header format
 The `X-B3-Sampled` header is encoded as "1" or "0". Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`
