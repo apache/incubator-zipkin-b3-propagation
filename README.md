@@ -2,6 +2,36 @@
 
 This repository elaborates identifiers used to place an operation in a trace tree. These attributes are propagated in-process, and eventually downstream (often via http headers), to ensure all activity originating from the same root are collected together. A sampling decision is made at the root of the trace, and this indicates if trace details should be collected and reported to the tracing system (usually Zipkin) or not.
 
+# Overall Process
+
+The most propagation use case is to copy a trace context from a client sending
+an RPC request to a server receiving it.
+
+In this case, the same trace IDs are used, which means that both the client and
+server side of an operation end up in the same node in the trace tree.
+
+Here's an example flow, assuming an HTTP request carries the propagated trace:
+```
+
+   Client Tracer                                              Server Tracer     
++------------------+                                       +------------------+
+|                  |                                       |                  |
+|   TraceContext   |           Http Request Headers        |   TraceContext   |
+| +--------------+ |          +-------------------+        | +--------------+ |
+| | TraceId      | |          | X-B3-TraceId      |        | | TraceId      | |
+| |              | |          |                   |        | |              | |
+| | ParentSpanId | | Extract  | X-B3-ParentSpanId | Inject | | ParentSpanId | |
+| |              +===========>|                   +=========>|              | |
+| | SpanId       | |          | X-B3-SpanId       |        | | SpanId       | |
+| |              | |          |                   |        | |              | |
+| | Sampled      | |          | X-B3-Sampled      |        | | Sampled      | |
+| +--------------+ |          +-------------------+        | +--------------+ |
+|                  |                                       |                  |
++------------------+                                       +------------------+
+
+```
+
+
 # Identifiers
 Trace identifiers are 64 or 128-bit, but all span identifiers within a trace are 64-bit. All identifiers are opaque.
 
