@@ -11,24 +11,23 @@ In this case, the same trace IDs are used, which means that both the client and
 server side of an operation end up in the same node in the trace tree.
 
 Here's an example flow, assuming an HTTP request carries the propagated trace:
+
 ```
-
    Client Tracer                                              Server Tracer     
-+------------------+                                       +------------------+
-|                  |                                       |                  |
-|   TraceContext   |           Http Request Headers        |   TraceContext   |
-| +--------------+ |          +-------------------+        | +--------------+ |
-| | TraceId      | |          | X-B3-TraceId      |        | | TraceId      | |
-| |              | |          |                   |        | |              | |
-| | ParentSpanId | | Extract  | X-B3-ParentSpanId | Inject | | ParentSpanId | |
-| |              +===========>|                   +=========>|              | |
-| | SpanId       | |          | X-B3-SpanId       |        | | SpanId       | |
-| |              | |          |                   |        | |              | |
-| | Sampled      | |          | X-B3-Sampled      |        | | Sampled      | |
-| +--------------+ |          +-------------------+        | +--------------+ |
-|                  |                                       |                  |
-+------------------+                                       +------------------+
-
+┌──────────────────┐                                       ┌──────────────────┐
+│                  │                                       │                  │
+│   TraceContext   │           Http Request Headers        │   TraceContext   │
+│ ┌──────────────┐ │          ┌───────────────────┐        │ ┌──────────────┐ │
+│ │ TraceId      │ │          │ X─B3─TraceId      │        │ │ TraceId      │ │
+│ │              │ │          │                   │        │ │              │ │
+│ │ ParentSpanId │ │ Extract  │ X─B3─ParentSpanId │ Inject │ │ ParentSpanId │ │
+│ │              ├─┼─────────>│                   ├────────┼>│              │ │
+│ │ SpanId       │ │          │ X─B3─SpanId       │        │ │ SpanId       │ │
+│ │              │ │          │                   │        │ │              │ │
+│ │ Sampled      │ │          │ X─B3─Sampled      │        │ │ Sampled      │ │
+│ └──────────────┘ │          └───────────────────┘        │ └──────────────┘ │
+│                  │                                       │                  │
+└──────────────────┘                                       └──────────────────┘
 ```
 
 
