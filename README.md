@@ -92,3 +92,56 @@ explicitly or implicitly down-cased.
 
 For example, the Http header `X-B3-ParentSpanId: 0020000000000001` would become
 an ASCII header `x-b3-parentspanid` with the same value.
+
+# Frequently Asked Questions
+
+## Why is ParentSpanId propagated?
+
+In B3, the trace context is extracted from incoming headers. Timing and
+metadata for the client and server side of an operation are recorded with
+the same context. The `ParentSpanId` is the ID of the operation that caused
+the current RPC. For example, it could be the ID of another server request
+or a scheduled job. `ParentSpanId` is propagated so that when data is reported
+to Zipkin, it can be placed in the correct spot in the trace tree.
+
+Here's an example of a B3 library extracting a trace context from incoming http
+request headers:
+```
+                           ┌───────────────────┐
+ Incoming Headers          │   TraceContext    │
+┌───────────────────┐      │ ┌───────────────┐ │
+│ X─B3-TraceId      │──────┼─┼> TraceId      │ │
+│                   │      │ │               │ │
+│ X─B3-ParentSpanId │──────┼─┼> ParentSpanId │ │
+│                   │      │ │               │ │
+│ X─B3-SpanId       │──────┼─┼> SpanId       │ │
+│                   │      │ └───────────────┘ │
+└───────────────────┘      └───────────────────┘
+```
+
+Some propagation formats look similar to B3, but don't propagate a field named
+parent. Instead, they propagate a span ID field which serves the same purpose
+as `ParentSpanId`. Unlike B3, these systems use a different span ID for the
+client and server side of an RPC. When a server reads headers like this, it is
+expected to provision a new span ID for itself, and use the one it extracted as
+its parent.
+
+Here's an example of an alternate library composing a trace context with
+incoming http request headers and an ID generator:
+```
+                           ┌───────────────────┐
+ Incoming Headers          │   TraceContext    │
+┌───────────────────┐      │ ┌───────────────┐ │
+│ XXXX─TraceId      │──────┼─┼> TraceId      │ │
+│                   │      │ │               │ │
+│ XXXX─SpanId       │──────┼─┼> ParentSpanId │ │
+└───────────────────┘      │ │               │ │      ┌──────────────┐
+                           │ │  SpanId      <┼─┼──────│ ID Generator │
+                           │ └───────────────┘ │      └──────────────┘
+                           └───────────────────┘
+```
+
+In both B3 and the above example, incoming headers contain the parent's span ID,
+and three IDs (trace, parent, span) end up in the trace context. The difference
+is that B3 uses the same span ID for the client and server side of an RPC, where
+the latter does not.
