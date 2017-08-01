@@ -71,13 +71,13 @@ When Debug is set, the trace should be reported to the tracing system and also o
 B3 attributes are most commonly propagated as Http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When reading headers, the first value wins.
 
 ## TraceId
-The `X-B3-TraceId` header is required and is encoded as 32 or 16 hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`
+The `X-B3-TraceId` header is required and is encoded as 32 or 16 lower-hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`
 
 ## SpanId
-The `X-B3-SpanId` header is required and is encoded as 16 hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`
+The `X-B3-SpanId` header is required and is encoded as 16 lower-hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`
 
 ## ParentSpanId
-The `X-B3-ParentSpanId` header must be present on a child span and absent on the root span. It is encoded as 16 hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
+The `X-B3-ParentSpanId` header must be present on a child span and absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
 
 ## Sampled Flag
 The `X-B3-Sampled` header is encoded as "1" or "0". Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`
