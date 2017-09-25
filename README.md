@@ -4,8 +4,8 @@ This repository elaborates identifiers used to place an operation in a trace tre
 
 # Overall Process
 
-The most propagation use case is to copy a trace context from a client sending
-an RPC request to a server receiving it.
+The most common propagation use case is to copy a trace context from a client 
+sending an RPC request to a server receiving it.
 
 In this case, the same trace IDs are used, which means that both the client and
 server side of an operation end up in the same node in the trace tree.
