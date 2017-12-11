@@ -98,8 +98,7 @@ public final class TraceContext {
     TraceId traceId;
     long flags;
     if (bytes.length == 32) {
-      long lo = buffer.getLong(16);
-      traceId = new TraceId(0, (parentId == lo) ? parentId : lo);
+      traceId = new TraceId(0, buffer.getLong(16));
       flags = buffer.getLong(24);
     } else {
       traceId = new TraceId(
