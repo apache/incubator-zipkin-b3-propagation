@@ -13,21 +13,21 @@ server side of an operation end up in the same node in the trace tree.
 Here's an example flow, assuming an HTTP request carries the propagated trace:
 
 ```
-   Client Tracer                                              Server Tracer     
-┌──────────────────┐                                       ┌──────────────────┐
-│                  │                                       │                  │
-│   TraceContext   │           Http Request Headers        │   TraceContext   │
-│ ┌──────────────┐ │          ┌───────────────────┐        │ ┌──────────────┐ │
-│ │ TraceId      │ │          │ X─B3─TraceId      │        │ │ TraceId      │ │
-│ │              │ │          │                   │        │ │              │ │
-│ │ ParentSpanId │ │ Extract  │ X─B3─ParentSpanId │ Inject │ │ ParentSpanId │ │
-│ │              ├─┼─────────>│                   ├────────┼>│              │ │
-│ │ SpanId       │ │          │ X─B3─SpanId       │        │ │ SpanId       │ │
-│ │              │ │          │                   │        │ │              │ │
-│ │ Sampled      │ │          │ X─B3─Sampled      │        │ │ Sampled      │ │
-│ └──────────────┘ │          └───────────────────┘        │ └──────────────┘ │
-│                  │                                       │                  │
-└──────────────────┘                                       └──────────────────┘
+   Client Tracer                                                  Server Tracer     
+┌─────────────────-----─┐                                       ┌────────────────-----──┐
+│                       │                                       │                       │
+│   TraceContext        │           Http Request Headers        │   TraceContext        │
+│ ┌─────────────-----─┐ │          ┌───────────────────┐        │ ┌────────────-----──┐ │
+│ │ TraceId           │ │          │ X─B3─TraceId      │        │ │ TraceId           │ │
+│ │                   │ │          │                   │        │ │                   │ │
+│ │ ParentSpanId      │ │ Extract  │ X─B3─ParentSpanId │ Inject │ │ ParentSpanId      │ │
+│ │                   ├─┼─────────>│                   ├────────┼>│                   │ │
+│ │ SpanId            │ │          │ X─B3─SpanId       │        │ │ SpanId            │ │
+│ │                   │ │          │                   │        │ │                   │ │
+│ │ Sampling decision │ │          │ X─B3─Sampled      │        │ │ Sampling decision │ │
+│ └──────────-----────┘ │          └───────────────────┘        │ └────────────-----──┘ │
+│                       │                                       │                       │
+└────────────────-----──┘                                       └───────────────-----───┘
 ```
 
 
@@ -46,28 +46,28 @@ The SpanId is 64-bit in length and indicates the position of the current operati
 
 The ParentSpanId is 64-bit in length and indicates the position of the parent operation in the trace tree. When the span is the root of the trace tree, the ParentSpanId is absent.
 
-# Flags
-The following flags are reported either in a flag set or separate attributes.
+# Options
+The following are the only options defined in B3.
 
-## Sampled
+## Sampling Decision
 
-When the Sampled flag is 1, report this span to the tracing system. When it is 0, do not. When B3 attributes are sent without the Sampled flag, the receiver should make the decision. Once Sampled is set to 0 or 1, the same value should be consistently sent downstream.
+When the sampled decision is accept, report this span to the tracing system. When it is reject, do not. When B3 attributes are sent without a sampled decision, the receiver should make one. Once the sampling decision is made, the same value should be consistently sent downstream.
 
 ### Details
 
-It may not be obvious why you'd send Sampled=0 to the next hop. Imagine a service decides not to trace an operation and makes 2 out-going calls, and these branched out further. If 0 ("don't trace") isn't propagated, the system might receive only parts of the operation, confusing users.
+It may not be obvious why you'd send a reject sampling decision to the next hop. Imagine a service decides not to trace an operation and makes 2 out-going calls, and these branched out further. If reject ("don't trace") isn't propagated, the system might receive only parts of the operation, confusing users.
 
-Leaving Sampled absent is special-case. The only known use-cases are the following:
+Deferring the sampling decision is special-case. The only known use-cases are the following:
 
-* Debug trace: When setting Flags to 1, sampling is implicit
+* Debug trace: A debug trace is implicitly an accepted trace
 * Externally provisioned IDs: When you want to control IDs, but not sampling policy
 
-Unless it is a debug trace, leaving sampled unset is typically for ID correlation. For example, someone re-uses a global identifier from another system, or correlating in logs. In these cases, the caller knows the ID they want, but allows the next hop to decide if it will be traced or not. The caller should not report a span to the tracing system using this ID unless they propagate Sampled=1.
+Unless it is a debug trace, leaving out a sampling decision is typically ID correlation. For example, someone re-uses a global identifier from another system, or correlating in logs. In these cases, the caller knows the ID they want, but allows the next hop to decide if it will be traced or not. The caller should not report a span to the tracing system using this ID unless they propagate an accept sampling decision.
 
-## Debug
-When Debug is set, the trace should be reported to the tracing system and also override any collection-tier sampling policy. Debug implies Sampled.
+## Debug Flag
+When Debug is set, the trace should be reported to the tracing system and also override any collection-tier sampling policy. Debug implies an accept sampling decision.
 
-# Http Propagation
+# Http Encoding
 B3 attributes are most commonly propagated as Http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When reading headers, the first value wins.
 
 ## TraceId
@@ -79,13 +79,15 @@ The `X-B3-SpanId` header is required and is encoded as 16 lower-hex characters. 
 ## ParentSpanId
 The `X-B3-ParentSpanId` header must be present on a child span and absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
 
-## Sampled Flag
-The `X-B3-Sampled` header is encoded as "1" or "0". Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`
+## Sampling Decision
+An accept sampling decision is encoded as `X-B3-Sampled: 1` and a reject as `X-B3-Sampled: 0`. Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`.
+
+Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or '0'. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
 
 ## Debug Flag
-Debug is encoded as `X-B3-Flags: 1`. Since Debug implies Sampled, so don't also send "X-B3-Sampled: 1".
+Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision: don't also send `X-B3-Sampled: 1`.
 
-# gRPC Propagation
+# gRPC Encoding
 B3 attributes can also be propagated as ASCII headers in the Custom Metadata of
 a request. The encoding is exactly the same as Http headers, except the names are
 explicitly or implicitly down-cased.
@@ -145,3 +147,14 @@ In both B3 and the above example, incoming headers contain the parent's span ID,
 and three IDs (trace, parent, span) end up in the trace context. The difference
 is that B3 uses the same span ID for the client and server side of an RPC, where
 the latter does not.
+
+## Why is Debug encoded as `X-B3-Flags: 1`?
+The first tracer to use B3 was Finagle. In Finagle, thrift-rpc was a dominant
+protocol, and a fixed-width binary encoding held B3 attributes. This binary
+encoding used a bit field to encode the sampling decision and the debug flag.
+
+Http encoding chose to use a separate header for the sampling decision, but
+kept the flags field for debug. In hind sight, it would have made more sense to
+use a separate header such as `X-B3-Debug: 1` as no other flags were added and
+no implementation treats `X-B3-Flags` as a bit field. That said, renaming the
+field would cause more damage than good, so it was left alone.
