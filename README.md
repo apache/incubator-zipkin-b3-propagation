@@ -53,17 +53,6 @@ The following are the only options defined in B3.
 
 When the sampled decision is accept, report this span to the tracing system. When it is reject, do not. When B3 attributes are sent without a sampled decision, the receiver should make one. Once the sampling decision is made, the same value should be consistently sent downstream.
 
-### Details
-
-It may not be obvious why you'd send a reject sampling decision to the next hop. Imagine a service decides not to trace an operation and makes 2 out-going calls, and these branched out further. If reject ("don't trace") isn't propagated, the system might receive only parts of the operation, confusing users.
-
-Deferring the sampling decision is special-case. The only known use-cases are the following:
-
-* Debug trace: A debug trace is implicitly an accepted trace
-* Externally provisioned IDs: When you want to control IDs, but not sampling policy
-
-Unless it is a debug trace, leaving out a sampling decision is typically ID correlation. For example, someone re-uses a global identifier from another system, or correlating in logs. In these cases, the caller knows the ID they want, but allows the next hop to decide if it will be traced or not. The caller should not report a span to the tracing system using this ID unless they propagate an accept sampling decision.
-
 ## Debug Flag
 When Debug is set, the trace should be reported to the tracing system and also override any collection-tier sampling policy. Debug implies an accept sampling decision.
 
@@ -147,6 +136,41 @@ In both B3 and the above example, incoming headers contain the parent's span ID,
 and three IDs (trace, parent, span) end up in the trace context. The difference
 is that B3 uses the same span ID for the client and server side of an RPC, where
 the latter does not.
+
+### Why propagate a reject sampling decision?
+
+It may not be obvious why you'd send a reject sampling decision to the next hop.
+Imagine a service decides not to trace an operation and makes 2 out-going calls,
+and these branched out further. If reject ("don't trace") isn't propagated, the
+system might receive only parts of the operation, confusing users.
+
+Another reason to reject sampling is to prevent overwhelming the collector with
+high throughput. If the reject-sampling decision is not propagated then there's
+no way to tell recipients of outbound calls that they should not send span info
+to the collector.
+
+#### Why send trace IDs with a reject sampling decision?
+
+While valid to propagate only a reject sampling decision (`X-B3-Sampled: 0`),
+if trace identifiers are established, they should be propagated, too. The
+tracing system is often not the only consumer of trace identifiers. Services may
+still want to do things with the tracing info even if they aren't sending span
+data to the collector, e.g. tag logs with trace IDs.
+
+### Why defer a sampling decision?
+
+Deferring the sampling decision is special-case. The only known use-cases are
+the following:
+
+* Debug trace: A debug trace is implicitly an accepted trace
+* Externally provisioned IDs: When you want to control IDs, but not sampling policy
+
+Unless it is a debug trace, leaving out a sampling decision is typically ID
+correlation. For example, someone re-uses a global identifier from another
+system, or correlating in logs. In these cases, the caller knows the ID they
+want, but allows the next hop to decide if it will be traced or not. The caller
+should not report a span to the tracing system using this ID unless they
+propagate an accept sampling decision.
 
 ## Why is Debug encoded as `X-B3-Flags: 1`?
 The first tracer to use B3 was Finagle. In Finagle, thrift-rpc was a dominant
