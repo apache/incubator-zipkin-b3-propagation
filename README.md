@@ -71,7 +71,7 @@ The `X-B3-ParentSpanId` header must be present on a child span and absent on the
 ## Sampling Decision
 An accept sampling decision is encoded as `X-B3-Sampled: 1` and a reject as `X-B3-Sampled: 0`. Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`.
 
-Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or '0'. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
+Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or `0`. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
 
 ## Debug Flag
 Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision: don't also send `X-B3-Sampled: 1`.
