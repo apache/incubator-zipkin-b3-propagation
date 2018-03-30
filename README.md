@@ -18,13 +18,13 @@ Here's an example flow, assuming an HTTP request carries the propagated trace:
 │                       │                                       │                       │
 │   TraceContext        │           Http Request Headers        │   TraceContext        │
 │ ┌─────────────-----─┐ │          ┌───────────────────┐        │ ┌────────────-----──┐ │
-│ │ TraceId           │ │          │ X─B3─TraceId      │        │ │ TraceId           │ │
+│ │ TraceId           │ │          │ X-B3-TraceId      │        │ │ TraceId           │ │
 │ │                   │ │          │                   │        │ │                   │ │
-│ │ ParentSpanId      │ │ Extract  │ X─B3─ParentSpanId │ Inject │ │ ParentSpanId      │ │
+│ │ ParentSpanId      │ │ Extract  │ X-B3-ParentSpanId │ Inject │ │ ParentSpanId      │ │
 │ │                   ├─┼─────────>│                   ├────────┼>│                   │ │
-│ │ SpanId            │ │          │ X─B3─SpanId       │        │ │ SpanId            │ │
+│ │ SpanId            │ │          │ X-B3-SpanId       │        │ │ SpanId            │ │
 │ │                   │ │          │                   │        │ │                   │ │
-│ │ Sampling decision │ │          │ X─B3─Sampled      │        │ │ Sampling decision │ │
+│ │ Sampling decision │ │          │ X-B3-Sampled      │        │ │ Sampling decision │ │
 │ └──────────-----────┘ │          └───────────────────┘        │ └────────────-----──┘ │
 │                       │                                       │                       │
 └────────────────-----──┘                                       └───────────────-----───┘
@@ -101,11 +101,11 @@ request headers:
                            ┌───────────────────┐
  Incoming Headers          │   TraceContext    │
 ┌───────────────────┐      │ ┌───────────────┐ │
-│ X─B3-TraceId      │──────┼─┼> TraceId      │ │
+│ X-B3-TraceId      │──────┼─┼> TraceId      │ │
 │                   │      │ │               │ │
-│ X─B3-ParentSpanId │──────┼─┼> ParentSpanId │ │
+│ X-B3-ParentSpanId │──────┼─┼> ParentSpanId │ │
 │                   │      │ │               │ │
-│ X─B3-SpanId       │──────┼─┼> SpanId       │ │
+│ X-B3-SpanId       │──────┼─┼> SpanId       │ │
 │                   │      │ └───────────────┘ │
 └───────────────────┘      └───────────────────┘
 ```
@@ -123,9 +123,9 @@ incoming http request headers and an ID generator:
                            ┌───────────────────┐
  Incoming Headers          │   TraceContext    │
 ┌───────────────────┐      │ ┌───────────────┐ │
-│ XXXX─TraceId      │──────┼─┼> TraceId      │ │
+│ XXXX-TraceId      │──────┼─┼> TraceId      │ │
 │                   │      │ │               │ │
-│ XXXX─SpanId       │──────┼─┼> ParentSpanId │ │
+│ XXXX-SpanId       │──────┼─┼> ParentSpanId │ │
 └───────────────────┘      │ │               │ │      ┌──────────────┐
                            │ │  SpanId      <┼─┼──────│ ID Generator │
                            │ └───────────────┘ │      └──────────────┘
