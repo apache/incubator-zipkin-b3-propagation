@@ -46,15 +46,21 @@ The SpanId is 64-bit in length and indicates the position of the current operati
 
 The ParentSpanId is 64-bit in length and indicates the position of the parent operation in the trace tree. When the span is the root of the trace tree, the ParentSpanId is absent.
 
-# Options
-The following are the only options defined in B3.
+# Sampling State
 
-## Sampling Decision
+Sampling is a mechanism to reduce the volume of data that ends up in the tracing system. In B3, sampling applies consistently per-trace: once the sampling decision is made, the same value should be consistently sent downstream. This means you will see all spans sharing a trace ID or none.
 
-When the sampled decision is accept, report this span to the tracing system. When it is reject, do not. When B3 attributes are sent without a sampled decision, the receiver should make one. Once the sampling decision is made, the same value should be consistently sent downstream.
+Here are the valid sampling states. Note they all applied to the trace ID, not the span ID:
+* Defer: aka I don't know yet!
+  * Defer is used when trace identifiers are set by a proxy, but that proxy doesn't send data to Zipkin. The most common use case for defering a decision is pre-provisioning trace identifiers.
+* Deny: aka don't sample or don't record
+  * Deny is used to achieve a probabilistic rate or to prevent certain paths (such as health checks) from generating traces. Where possible, instrumentation should should optimize deny such that less overhead occurs.
+* Accept: aka sample or record
+  * Accept is used to achieve a probabilistic rate or to ensure certain paths (such as low-traffic endpoints) are always traced. When a trace is accepted, spans should be reported to zipkin except in overload scenarios.
+* Debug: aka force trace
+  * Debug is a production troubleshooting aid used in tools like curl or chrome debug. Debug is an emphasized accept decision that implies accept, additionally reporting `Span.debug = true` for each span in the trace.
 
-## Debug Flag
-When Debug is set, the trace should be reported to the tracing system and also override any collection-tier sampling policy. Debug implies an accept sampling decision.
+The most common use of sampling is probablistic: eg, accept 0.01% of traces and deny the rest. Debug is the least common use case.
 
 # Http Encoding
 B3 attributes are most commonly propagated as Http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When reading headers, the first value wins.
@@ -68,13 +74,13 @@ The `X-B3-SpanId` header is required and is encoded as 16 lower-hex characters. 
 ## ParentSpanId
 The `X-B3-ParentSpanId` header must be present on a child span and absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
 
-## Sampling Decision
+## Sampling State
 An accept sampling decision is encoded as `X-B3-Sampled: 1` and a reject as `X-B3-Sampled: 0`. Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`.
 
 Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or `0`. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
 
-## Debug Flag
-Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision: don't also send `X-B3-Sampled: 1`.
+### Debug Flag
+Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision, so don't also send `X-B3-Sampled: 1`.
 
 # gRPC Encoding
 B3 attributes can also be propagated as ASCII headers in the Custom Metadata of
