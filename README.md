@@ -10,26 +10,25 @@ sending an RPC request to a server receiving it.
 In this case, the same trace IDs are used, which means that both the client and
 server side of an operation end up in the same node in the trace tree.
 
-Here's an example flow, assuming an HTTP request carries the propagated trace:
+Here's an example flow using multiple headers, assuming an HTTP request carries the propagated trace:
 
 ```
    Client Tracer                                                  Server Tracer     
 ┌─────────────────-----─┐                                       ┌────────────────-----──┐
 │                       │                                       │                       │
-│   TraceContext        │           Http Request Headers        │   TraceContext        │
-│ ┌─────────────-----─┐ │          ┌───────────────────┐        │ ┌────────────-----──┐ │
-│ │ TraceId           │ │          │ X-B3-TraceId      │        │ │ TraceId           │ │
-│ │                   │ │          │                   │        │ │                   │ │
-│ │ ParentSpanId      │ │ Extract  │ X-B3-ParentSpanId │ Inject │ │ ParentSpanId      │ │
-│ │                   ├─┼─────────>│                   ├────────┼>│                   │ │
-│ │ SpanId            │ │          │ X-B3-SpanId       │        │ │ SpanId            │ │
-│ │                   │ │          │                   │        │ │                   │ │
-│ │ Sampling decision │ │          │ X-B3-Sampled      │        │ │ Sampling decision │ │
-│ └──────────-----────┘ │          └───────────────────┘        │ └────────────-----──┘ │
+│   TraceContext        │          Http Request Headers         │   TraceContext        │
+│ ┌─────────────-----─┐ │         ┌───────────────────┐         │ ┌────────────-----──┐ │
+│ │ TraceId           │ │         │ X-B3-TraceId      │         │ │ TraceId           │ │
+│ │                   │ │         │                   │         │ │                   │ │
+│ │ ParentSpanId      │ │ Inject  │ X-B3-ParentSpanId │ Extract │ │ ParentSpanId      │ │
+│ │                   ├─┼────────>│                   ├─────-───┼>│                   │ │
+│ │ SpanId            │ │         │ X-B3-SpanId       │         │ │ SpanId            │ │
+│ │                   │ │         │                   │         │ │                   │ │
+│ │ Sampling decision │ │         │ X-B3-Sampled      │         │ │ Sampling decision │ │
+│ └──────────-----────┘ │         └───────────────────┘         │ └────────────-----──┘ │
 │                       │                                       │                       │
 └────────────────-----──┘                                       └───────────────-----───┘
 ```
-
 
 # Identifiers
 Trace identifiers are 64 or 128-bit, but all span identifiers within a trace are 64-bit. All identifiers are opaque.
@@ -44,7 +43,7 @@ The SpanId is 64-bit in length and indicates the position of the current operati
 
 ## ParentSpanId
 
-The ParentSpanId is 64-bit in length and indicates the position of the parent operation in the trace tree. When the span is the root of the trace tree, the ParentSpanId is absent.
+The ParentSpanId is 64-bit in length and indicates the position of the parent operation in the trace tree. When the span is the root of the trace tree, there is no ParentSpanId.
 
 # Sampling State
 
@@ -62,33 +61,117 @@ Here are the valid sampling states. Note they all applied to the trace ID, not t
 
 The most common use of sampling is probablistic: eg, accept 0.01% of traces and deny the rest. Debug is the least common use case.
 
-# Http Encoding
-B3 attributes are most commonly propagated as Http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When reading headers, the first value wins.
+# Http Encodings
+There are two encodings of B3: Single Header and Multiple Header. Multiple header encoding uses an `X-B3-` prefixed header per item in the trace context. Single header delimits the context into into a single entry named `b3`. When both are present, the single-header variant is preferred.
 
-## TraceId
+## Multiple Headers
+B3 attributes are most commonly propagated as multiple http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When reading headers, the first value wins.
+
+### TraceId
 The `X-B3-TraceId` header is required and is encoded as 32 or 16 lower-hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`
 
-## SpanId
+### SpanId
 The `X-B3-SpanId` header is required and is encoded as 16 lower-hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`
 
-## ParentSpanId
-The `X-B3-ParentSpanId` header must be present on a child span and absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
+### ParentSpanId
+The `X-B3-ParentSpanId` header may be present on a child span and absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
 
-## Sampling State
-An accept sampling decision is encoded as `X-B3-Sampled: 1` and a reject as `X-B3-Sampled: 0`. Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`.
+### Sampling State
+An accept sampling decision is encoded as `X-B3-Sampled: 1` and a deny as `X-B3-Sampled: 0`. Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`.
 
 Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or `0`. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
 
 ### Debug Flag
 Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision, so don't also send `X-B3-Sampled: 1`.
 
+## Single Header
+A single header named `b3` standardized in late 2018 for use in JMS and w3c `tracestate`. Design and rationale are captured [here](https://cwiki.apache.org/confluence/display/ZIPKIN/b3+single+header+format). Check or update our [support page](https://cwiki.apache.org/confluence/display/ZIPKIN/b3+single+header+support) for adoption status.
+
+In simplest terms `b3` maps propagation fields into a hyphen delimited string.
+
+`b3={TraceId}-{SpanId}-{SamplingState}-{ParentSpanId}`, where the last two fields are optional.
+
+For example, the following state encoded in multiple headers:
+```
+X-B3-TraceId: 80f198ee56343ba864fe8b2a57d3eff7
+X-B3-ParentSpanId: 05e3ac9a4f6e3b90
+X-B3-SpanId: e457b5a2e4d86bd1
+X-B3-Sampled: 1
+```
+
+Becomes one `b3` entry, for example:
+```
+b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1-e457b5a2e4d86bd1
+```
+
+*Note:* When only propagating a sampling decision, the header is still named `b3`, but only contains the sampling state.
+
+A deny decision encodes as:
+```
+b3: 0
+```
+
+### TraceId
+The first position of the `b3` value is the 32 or 16 lower-hex character TraceId. Unless propagating
+only the Sampling State, the TraceId is required.
+
+For example, a TraceId of `80f198ee56343ba864fe8b2a57d3eff7` encodes in the left-most position:
+```
+b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1
+```
+
+### SpanId
+The second position of the `b3` value is the 16 lower-hex character SpanId. Unless propagating only
+the Sampling State, the SpanId is required.
+
+For example, a SpanId of `05e3ac9a4f6e3b90` encodes after the left-most hyphen:
+```
+b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1
+```
+
+### Sampling State
+When the sampling state isn't Defer, it is encoded as a single hex character in the third position
+of the `b3` value. Sampling state can also be sent on its own (with no identifiers).
+
+Sampling State is encoded as a single hex character for all states except Defer. Defer is absence of
+the sampling field.
+* Accept: `1`
+* Deny: `0`
+* Debug: `d`
+
+For example, a debug trace could look like this
+```
+b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-d
+```
+
+A deny decision may omit identifiers and look like this:
+```
+b3: 0
+```
+
+### ParentSpanId
+When present, ParentSpanId is the 16 lower-hex characters in the final position of `b3`.
+
+For example, a ParentSpanId of `e457b5a2e4d86bd1` encodes in the right-most position:
+```
+b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1-e457b5a2e4d86bd1
+```
+
 # gRPC Encoding
 B3 attributes can also be propagated as ASCII headers in the Custom Metadata of
 a request. The encoding is exactly the same as Http headers, except the names are
 explicitly or implicitly down-cased.
 
-For example, the Http header `X-B3-ParentSpanId: 0020000000000001` would become
-an ASCII header `x-b3-parentspanid` with the same value.
+For example, when using multiple headers, `X-B3-ParentSpanId: 0020000000000001` encodes
+as an ASCII header `x-b3-parentspanid` with the same value.
+
+# JMS Encoding
+JMS (Java Message Service) has constraints that disallow `X-B3-` prefixed headers.
+As such, only the single header format `b3` should be used with JMS. As messaging spans
+never share a SpanId, it is encouraged to omit the ParentSpanId field when propagating.
+
+Refer to our [design](https://cwiki.apache.org/confluence/display/ZIPKIN/b3+single+header+format)
+documentation for details.
 
 # Frequently Asked Questions
 
