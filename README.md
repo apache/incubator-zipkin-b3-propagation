@@ -10,7 +10,7 @@ sending an RPC request to a server receiving it.
 In this case, the same trace IDs are used, which means that both the client and
 server side of an operation end up in the same node in the trace tree.
 
-Here's an example flow using multiple headers, assuming an HTTP request carries the propagated trace:
+Here's an example flow using multiple header encoding, assuming an HTTP request carries the propagated trace:
 
 ```
    Client Tracer                                                  Server Tracer     
@@ -62,10 +62,12 @@ Here are the valid sampling states. Note they all applied to the trace ID, not t
 The most common use of sampling is probablistic: eg, accept 0.01% of traces and deny the rest. Debug is the least common use case.
 
 # Http Encodings
-There are two encodings of B3: Single Header and Multiple Header. Multiple header encoding uses an `X-B3-` prefixed header per item in the trace context. Single header delimits the context into into a single entry named `b3`. When both are present, the single-header variant is preferred.
+There are two encodings of B3: Single Header and Multiple Header. Multiple header encoding uses an `X-B3-` prefixed header per item in the trace context. Single header delimits the context into into a single entry named `b3`. The single-header variant takes precedence over the multiple header one when extracting fields.
 
 ## Multiple Headers
-B3 attributes are most commonly propagated as multiple http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When reading headers, the first value wins.
+B3 attributes are most commonly propagated as multiple http headers. All B3 headers follows the convention of `X-B3-${name}` with special-casing for flags. When extracting state headers, the first value wins.
+
+Note: Http headers are case-insensitive, but sometimes this encoding is used for other transports. When encoding in case-sensitive transports, prefer lowercase keys or the single header header encoding which is explicitly lowercase.
 
 ### TraceId
 The `X-B3-TraceId` header is required and is encoded as 32 or 16 lower-hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`
@@ -74,7 +76,7 @@ The `X-B3-TraceId` header is required and is encoded as 32 or 16 lower-hex chara
 The `X-B3-SpanId` header is required and is encoded as 16 lower-hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`
 
 ### ParentSpanId
-The `X-B3-ParentSpanId` header may be present on a child span and absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
+The `X-B3-ParentSpanId` header may be present on a child span and must be absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
 
 ### Sampling State
 An accept sampling decision is encoded as `X-B3-Sampled: 1` and a deny as `X-B3-Sampled: 0`. Absent means defer the decision to the receiver of this header. For example, a Sampled header might look like: `X-B3-Sampled: 1`.
@@ -82,7 +84,7 @@ An accept sampling decision is encoded as `X-B3-Sampled: 1` and a deny as `X-B3-
 Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or `0`. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
 
 ### Debug Flag
-Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision, so don't also send `X-B3-Sampled: 1`.
+Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision, so don't also send the `X-B3-Sampled` header.
 
 ## Single Header
 A single header named `b3` standardized in late 2018 for use in JMS and w3c `tracestate`. Design and rationale are captured [here](https://cwiki.apache.org/confluence/display/ZIPKIN/b3+single+header+format). Check or update our [support page](https://cwiki.apache.org/confluence/display/ZIPKIN/b3+single+header+support) for adoption status.
