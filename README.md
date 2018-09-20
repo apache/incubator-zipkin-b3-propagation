@@ -14,10 +14,10 @@ Here's an example flow, assuming an HTTP request carries the propagated trace:
 
 ```
    Client Tracer                                                  Server Tracer     
-┌─────────────────-----─┐                                       ┌────────────────-----──┐
+┌───────────────────────┐                                       ┌───────────────────────┐
 │                       │                                       │                       │
 │   TraceContext        │           Http Request Headers        │   TraceContext        │
-│ ┌─────────────-----─┐ │          ┌───────────────────┐        │ ┌────────────-----──┐ │
+│ ┌───────────────────┐ │          ┌───────────────────┐        │ ┌───────────────────┐ │
 │ │ TraceId           │ │          │ X-B3-TraceId      │        │ │ TraceId           │ │
 │ │                   │ │          │                   │        │ │                   │ │
 │ │ ParentSpanId      │ │ Extract  │ X-B3-ParentSpanId │ Inject │ │ ParentSpanId      │ │
@@ -25,9 +25,9 @@ Here's an example flow, assuming an HTTP request carries the propagated trace:
 │ │ SpanId            │ │          │ X-B3-SpanId       │        │ │ SpanId            │ │
 │ │                   │ │          │                   │        │ │                   │ │
 │ │ Sampling decision │ │          │ X-B3-Sampled      │        │ │ Sampling decision │ │
-│ └──────────-----────┘ │          └───────────────────┘        │ └────────────-----──┘ │
+│ └───────────────────┘ │          └───────────────────┘        │ └───────────────────┘ │
 │                       │                                       │                       │
-└────────────────-----──┘                                       └───────────────-----───┘
+└────────────────-----──┘                                       └───────────────────────┘
 ```
 
 
