@@ -103,7 +103,7 @@ X-B3-Sampled: 1
 
 Becomes one `b3` entry, for example:
 ```
-b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1-e457b5a2e4d86bd1
+b3: 80f198ee56343ba864fe8b2a57d3eff7-e457b5a2e4d86bd1-1-05e3ac9a4f6e3b90
 ```
 
 *Note:* When only propagating a sampling decision, the header is still named `b3`, but only contains the sampling state.
@@ -119,16 +119,16 @@ only the Sampling State, the TraceId is required.
 
 For example, a TraceId of `80f198ee56343ba864fe8b2a57d3eff7` encodes in the left-most position:
 ```
-b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1
+b3: 80f198ee56343ba864fe8b2a57d3eff7-e457b5a2e4d86bd1-1
 ```
 
 ### SpanId
 The second position of the `b3` value is the 16 lower-hex character SpanId. Unless propagating only
 the Sampling State, the SpanId is required.
 
-For example, a SpanId of `05e3ac9a4f6e3b90` encodes after the left-most hyphen:
+For example, a SpanId of `e457b5a2e4d86bd1` encodes after the left-most hyphen:
 ```
-b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1
+b3: 80f198ee56343ba864fe8b2a57d3eff7-e457b5a2e4d86bd1-1
 ```
 
 ### Sampling State
@@ -143,7 +143,7 @@ the sampling field.
 
 For example, a debug trace could look like this
 ```
-b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-d
+b3: 80f198ee56343ba864fe8b2a57d3eff7-e457b5a2e4d86bd1-d
 ```
 
 A deny decision may omit identifiers and look like this:
@@ -154,9 +154,9 @@ b3: 0
 ### ParentSpanId
 When present, ParentSpanId is the 16 lower-hex characters in the final position of `b3`.
 
-For example, a ParentSpanId of `e457b5a2e4d86bd1` encodes in the right-most position:
+For example, a ParentSpanId of `05e3ac9a4f6e3b90` encodes in the right-most position:
 ```
-b3: 80f198ee56343ba864fe8b2a57d3eff7-05e3ac9a4f6e3b90-1-e457b5a2e4d86bd1
+b3: 80f198ee56343ba864fe8b2a57d3eff7-e457b5a2e4d86bd1-1-05e3ac9a4f6e3b90
 ```
 
 # gRPC Encoding
