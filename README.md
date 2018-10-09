@@ -101,7 +101,7 @@ X-B3-SpanId: e457b5a2e4d86bd1
 X-B3-Sampled: 1
 ```
 
-Becomes one `b3` entry, for example:
+Becomes one `b3` header, for example:
 ```
 b3: 80f198ee56343ba864fe8b2a57d3eff7-e457b5a2e4d86bd1-1-05e3ac9a4f6e3b90
 ```
