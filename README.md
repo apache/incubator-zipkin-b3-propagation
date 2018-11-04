@@ -30,8 +30,22 @@ Here's an example flow using multiple header encoding, assuming an HTTP request 
 └───────────────────────┘                                       └───────────────────────┘
 ```
 
+Trace identifiers are often sent with a sampling decision. However, it is valid and common practice to send a sampling decision independently. Here's an example of a proxy forbidding tracing of a `/health` endpoint. The diagram shows the receiver making a NoOp trace context to ensure minimal overhead.
+```
+                                Server Tracer     
+                              ┌───────────────────────┐
+ Health check request         │                       │
+┌───────────────────┐         │   TraceContext        │
+│ GET /health       │ Extract │ ┌───────────────────┐ │
+│ X-B3-Sampled: 0   ├─────────┼>│ NoOp              │ │
+└───────────────────┘         │ └───────────────────┘ │
+                              └───────────────────────┘
+```
+
 # Identifiers
-Trace identifiers are 64 or 128-bit, but all span identifiers within a trace are 64-bit. All identifiers are opaque.
+Trace identifiers are 64 or 128-bit, but all span identifiers within a trace are 64-bit. All identifiers are opaque.  
+
+Identifiers are almost always sent with Sampling state, but they can be sent alone to implement a "Defer" decision described below.
 
 ## TraceId
 
@@ -52,6 +66,7 @@ Sampling is a mechanism to reduce the volume of data that ends up in the tracing
 Here are the valid sampling states. Note they all applied to the trace ID, not the span ID:
 * Defer: aka I don't know yet!
   * Defer is used when trace identifiers are set by a proxy, but that proxy doesn't send data to Zipkin. The most common use case for defering a decision is pre-provisioning trace identifiers.
+  * In all known encodings, defer is the absence of sampling state.
 * Deny: aka don't sample or don't record
   * Deny is used to achieve a probabilistic rate or to prevent certain paths (such as health checks) from generating traces. Where possible, instrumentation should should optimize deny such that less overhead occurs.
 * Accept: aka sample or record
@@ -61,6 +76,21 @@ Here are the valid sampling states. Note they all applied to the trace ID, not t
 
 The most common use of sampling is probablistic: eg, accept 0.01% of traces and deny the rest. Debug is the least common use case.
 
+Sampling state is almost always sent with Identifiers, but it can be sent alone (a predefined decision). This is used for a few use cases:
+* Deny: Using a constant entry for a deny decision is more efficient than generating identifiers. Libraries that do this cannot do external ID correlation, though, for example, log correlation.
+* Accept: Some proxies send a constant entry for an accept decision as they want a specific path to be traced, but don't want to interfere with ID generation.
+* Debug: Some support guides send debug without IDs as it is easier to do in curl. 
+
+# Encodings
+Below are a number of predefined encodings. The oldest encoding is multiple HTTP headers (2012). Some application notes have been made since, as well a compact, single-header encoding. A [binary encoding](https://github.com/openzipkin/b3-propagation/issues/31) may be defined as well.
+
+Most users do not need to know the encodings listed here as they are built-in to libraries, frameworks and proxies. While this specification aims to be complete, it will not elaborate all use cases and practice. Please contact the [Zipkin gitter](https://gitter.im/openzipkin/zipkin) if you are confused about something.
+
+# Custom Encodings
+We recommend re-using existing encodings over developing new ones as there are usually subtleties that even experienced folks overlook. For example, one proxy accidentally chose to use a hyphen to substitute for an absent parent span ID. This caused broken traces, and in some extreme cases, crashed requests. Some types of software have multiple month or longer release cycles, which adds tension to add "spaghetti" to clean it up. Identifying and answering questions about such problems add support load unfairly to others as they weren't consulted. Even ruling out format mismatches, misunderstanding of the feature set can cause expensive maintenance later.
+
+The best way to avoid costly mistakes is to re-use an encoding. The second-best way is reading this spec completely when designing a bespoke encoding, and getting feedback from the authors on your work. If you are designing a new encoding, please contact the [Zipkin gitter](https://gitter.im/openzipkin/zipkin) so that you have the best chance to avoid mistakes others made in the past.
+
 # Http Encodings
 There are two encodings of B3: Single Header and Multiple Header. Multiple header encoding uses an `X-B3-` prefixed header per item in the trace context. Single header delimits the context into into a single entry named `b3`. The single-header variant takes precedence over the multiple header one when extracting fields.
 
@@ -69,11 +99,13 @@ B3 attributes are most commonly propagated as multiple http headers. All B3 head
 
 Note: Http headers are case-insensitive, but sometimes this encoding is used for other transports. When encoding in case-sensitive transports, prefer lowercase keys or the single header header encoding which is explicitly lowercase.
 
+As mentioned earlier, identifiers can be sent with or without sampling state and visa versa. It is important to understand the relationships between these headers. For example, `X-B3-TraceId` and `X-B3-SpanId` can be sent alone, or with a sampling header `X-B3-Sampled`. It is also valid to send sampling state independently, such as a deny decision `X-B3-Sampled: 0`.
+
 ### TraceId
-The `X-B3-TraceId` header is required and is encoded as 32 or 16 lower-hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`
+The `X-B3-TraceId` header is encoded as 32 or 16 lower-hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`. Unless propagating only the Sampling State, the `X-B3-TraceId` header is required.
 
 ### SpanId
-The `X-B3-SpanId` header is required and is encoded as 16 lower-hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`
+The `X-B3-SpanId` header is encoded as 16 lower-hex characters. For example, a SpanId header might look like: `X-B3-SpanId: a2fb4a1d1a96d312`. Unless propagating only the Sampling State, the `X-B3-SpanId` header is required.
 
 ### ParentSpanId
 The `X-B3-ParentSpanId` header may be present on a child span and must be absent on the root span. It is encoded as 16 lower-hex characters. For example, a ParentSpanId header might look like: `X-B3-ParentSpanId: 0020000000000001`
@@ -83,7 +115,7 @@ An accept sampling decision is encoded as `X-B3-Sampled: 1` and a deny as `X-B3-
 
 Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or `0`. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
 
-### Debug Flag
+#### Debug Flag
 Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision, so don't also send the `X-B3-Sampled` header.
 
 ## Single Header
