@@ -86,7 +86,7 @@ Below are a number of predefined encodings. The oldest encoding is multiple HTTP
 
 Most users do not need to know the encodings listed here as they are built-in to libraries, frameworks and proxies. While this specification aims to be complete, it will not elaborate all use cases and practice. Please contact the [Zipkin gitter](https://gitter.im/openzipkin/zipkin) if you are confused about something.
 
-# Custom Encodings
+## Custom Encodings
 We recommend re-using existing encodings over developing new ones as there are usually subtleties that even experienced folks overlook. For example, one proxy accidentally chose to use a hyphen to substitute for an absent parent span ID. This caused broken traces, and in some extreme cases, crashed requests. Some types of software have multiple month or longer release cycles, which adds tension to add "spaghetti" to clean it up. Identifying and answering questions about such problems add support load unfairly to others as they weren't consulted. Even ruling out format mismatches, misunderstanding of the feature set can cause expensive maintenance later.
 
 The best way to avoid costly mistakes is to re-use an encoding. The second-best way is reading this spec completely when designing a bespoke encoding, and getting feedback from the authors on your work. If you are designing a new encoding, please contact the [Zipkin gitter](https://gitter.im/openzipkin/zipkin) so that you have the best chance to avoid mistakes others made in the past.
