@@ -119,7 +119,7 @@ Note: Before this specification was written, some tracers propagated `X-B3-Sampl
 Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision, so don't also send the `X-B3-Sampled` header.
 
 ## Single Header
-A single header named `b3` standardized in late 2018 for use in JMS and w3c `tracestate`. Design and rationale are captured [here](https://cwiki.apache.org/confluence/display/ZIPKIN/b3+single+header+format). Check or update our [support page](https://cwiki.apache.org/confluence/display/ZIPKIN/b3+single+header+support) for adoption status.
+A single header named `b3` standardized in late 2018 for use in JMS and w3c `tracestate`. Design and rationale are captured [here](RATIONALE.md). Check or update our [status page](STATUS.md) for adoption status.
 
 In simplest terms `b3` maps propagation fields into a hyphen delimited string.
 
