@@ -11,7 +11,7 @@ This specification elaborates identifiers used to place an operation in a trace 
 The most common propagation use case is to copy a trace context from a client 
 sending an RPC request to a server receiving it.
 
-In this case, the same span IDs are used, which means that both the client and
+In this case, the same span ID is used, which means that both the client and
 server side of an operation end up in the same node in the trace tree.
 
 Here's an example flow using multiple header encoding, assuming an HTTP request carries the propagated trace:
