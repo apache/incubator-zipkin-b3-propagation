@@ -72,7 +72,7 @@ Here are the valid sampling states. Note they all applied to the trace ID, not t
   * Defer is used when trace identifiers are set by a proxy, but that proxy doesn't send data to Zipkin. The most common use case for defering a decision is pre-provisioning trace identifiers.
   * In all known encodings, defer is the absence of sampling state.
 * Deny: aka don't sample or don't record
-  * Deny is used to achieve a probabilistic rate or to prevent certain paths (such as health checks) from generating traces. Where possible, instrumentation should should optimize deny such that less overhead occurs.
+  * Deny is used to achieve a probabilistic rate or to prevent certain paths (such as health checks) from generating traces. Where possible, instrumentation should optimize deny such that less overhead occurs.
 * Accept: aka sample or record
   * Accept is used to achieve a probabilistic rate or to ensure certain paths (such as low-traffic endpoints) are always traced. When a trace is accepted, spans should be reported to zipkin except in overload scenarios.
 * Debug: aka force trace
