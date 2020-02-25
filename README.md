@@ -105,6 +105,8 @@ Note: Http headers are case-insensitive, but sometimes this encoding is used for
 
 As mentioned earlier, identifiers can be sent with or without sampling state and visa versa. It is important to understand the relationships between these headers. For example, `X-B3-TraceId` and `X-B3-SpanId` can be sent alone, or with a sampling header `X-B3-Sampled`. It is also valid to send sampling state independently, such as a deny decision `X-B3-Sampled: 0`.
 
+Note: Two headers, `X-B3-Sampled` and `X-B3-ParentSpanId` can be absent. Absent means the header doesn't exist. An empty header (ex. `X-B3-Sampled: `) or an arbitrary nonsense value (ex `X-B3-ParentSpanId: -`) are examples of malformed data.
+
 ### TraceId
 The `X-B3-TraceId` header is encoded as 32 or 16 lower-hex characters. For example, a 128-bit TraceId header might look like: `X-B3-TraceId: 463ac35c9f6413ad48485a3953bb6124`. Unless propagating only the Sampling State, the `X-B3-TraceId` header is required.
 
@@ -120,7 +122,7 @@ An accept sampling decision is encoded as `X-B3-Sampled: 1` and a deny as `X-B3-
 Note: Before this specification was written, some tracers propagated `X-B3-Sampled` as `true` or `false` as opposed to `1` or `0`. While you shouldn't encode `X-B3-Sampled` as `true` or `false`, a lenient implementation may accept them.
 
 #### Debug Flag
-Debug is encoded as `X-B3-Flags: 1`. Debug implies an accept decision, so don't also send the `X-B3-Sampled` header.
+Debug is encoded as `X-B3-Flags: 1`. Absent or any other value can be ignored. Debug implies an accept decision, so don't also send the `X-B3-Sampled` header.
 
 ## Single Header
 A single header named `b3` standardized in late 2018 for use in JMS and w3c `tracestate`. Design and rationale are captured [here](RATIONALE.md). Check or update our [status page](STATUS.md) for adoption status.
