@@ -266,7 +266,7 @@ and three IDs (trace, parent, span) end up in the trace context. The difference
 is that B3 uses the same span ID for the client and server side of an RPC, where
 the latter does not.
 
-### Why propagate a reject sampling decision?
+## Why propagate a reject sampling decision?
 
 It may not be obvious why you'd send a reject sampling decision to the next hop.
 Imagine a service decides not to trace an operation and makes 2 out-going calls,
@@ -278,7 +278,7 @@ high throughput. If the reject-sampling decision is not propagated then there's
 no way to tell recipients of outbound calls that they should not send span info
 to the collector.
 
-#### Why send trace IDs with a reject sampling decision?
+### Why send trace IDs with a reject sampling decision?
 
 While valid to propagate only a reject sampling decision (`X-B3-Sampled: 0`),
 if trace identifiers are established, they should be propagated, too. The
@@ -286,7 +286,7 @@ tracing system is often not the only consumer of trace identifiers. Services may
 still want to do things with the tracing info even if they aren't sending span
 data to the collector, e.g. tag logs with trace IDs.
 
-### Why defer a sampling decision?
+## Why defer a sampling decision?
 
 Deferring the sampling decision is special-case. The only known use-cases are
 the following:
@@ -302,6 +302,7 @@ should not report a span to the tracing system using this ID unless they
 propagate an accept sampling decision.
 
 ## Why is Debug encoded as `X-B3-Flags: 1`?
+
 The first tracer to use B3 was Finagle. In Finagle, thrift-rpc was a dominant
 protocol, and a fixed-width binary encoding held B3 attributes. This binary
 encoding used a bit field to encode the sampling decision and the debug flag.
@@ -311,3 +312,38 @@ kept the flags field for debug. In hind sight, it would have made more sense to
 use a separate header such as `X-B3-Debug: 1` as no other flags were added and
 no implementation treats `X-B3-Flags` as a bit field. That said, renaming the
 field would cause more damage than good, so it was left alone.
+
+## What is the relationship between B3 context and trace data formats?
+
+When you see B3 headers of any kind, you cannot assume the out-of-band data is
+in Zipkin format, or even that data is sent to a tracing system. For example,
+some embed trace data into log lines correlated with the same IDs in the headers.
+Others use B3 headers for dramatically different trace formats.
+
+That said, it is typically the case that data is sent out-of-band, and outgoing
+fields match some fields in that data. For example, in [Zipkin format](https://github.com/openzipkin/zipkin-api), all fields
+except Accept and Deny flags are reported. That's because Accept is implied and
+Deny would not result in reported data.
+
+### Handling B3 when reporting data to a tracing system
+
+It is possible that a proxy, such as Envoy, accepts trace data correlated with B3
+headers sent by the application. Depending on configuration, that proxy could
+start a trace for the act of sending trace data, amplifying traffic to your
+tracing system with low or negative value traces. While most sites will not trace
+data sent to a tracing system, there are generally 2 ways to address this proxy
+setup:
+
+1. Configure the proxy to not trace your trace reporting endpont (Ex in Zipkin, `POST /api/v2/spans`)
+2. Send `b3: 0` header (an explicit Deny), to prevent tracing.
+
+We recommend having your trace reporting library send `b3: 0`. This cements a
+cost to everyone, only to help those proxying their trace data. However, it is
+becoming common in mesh environments to proxy everything, and in reality there is
+limited ability for end users to change the sampling policy of proxies.
+
+Note: we don't suggest sending also `x-b3-sampled: 0` as the proxy problem is
+recent and largely contained to Envoy, which already supports B3 single format.
+Sending a larger second header would increase the pain to others who don't have
+this problem anyway. Put another way, the few proxies missing B3 single header
+support should update instead of burdening more people from lack thereof.
