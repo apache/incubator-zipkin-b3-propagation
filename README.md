@@ -47,21 +47,21 @@ Trace identifiers are often sent with a sampling decision. However, it is valid 
 ```
 
 # Identifiers
-Trace identifiers are 64 or 128-bit, but all span identifiers within a trace are 64-bit. All identifiers are opaque.  
+Trace identifiers are 64- or 128-bit, but all span identifiers within a trace are 64-bit. All identifiers are opaque.  
 
 Identifiers are almost always sent with Sampling state, but they can be sent alone to implement a "Defer" decision described below.
 
 ## TraceId
 
-The TraceId is 64 or 128-bit in length and indicates the overall ID of the trace. Every span in a trace shares this ID.
+The TraceId is 64 or 128 bits in length and indicates the overall ID of the trace. Every span in a trace shares this ID.
 
 ## SpanId
 
-The SpanId is 64-bit in length and indicates the position of the current operation in the trace tree. The value should not be interpreted: it may or may not be derived from the value of the TraceId.
+The SpanId is 64 bits in length and indicates the position of the current operation in the trace tree. The value should not be interpreted: it may or may not be derived from the value of the TraceId.
 
 ## ParentSpanId
 
-The ParentSpanId is 64-bit in length and indicates the position of the parent operation in the trace tree. When the span is the root of the trace tree, there is no ParentSpanId.
+The ParentSpanId is 64 bits in length and indicates the position of the parent operation in the trace tree. When the span is the root of the trace tree, there is no ParentSpanId.
 
 # Sampling State
 
